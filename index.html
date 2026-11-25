@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Okul Engelsiz Krokisi</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#1b1b1a"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#f6f5f1;--tx:#1b1b1a;--mu:#666660;--zn:#e6e4dc;--st:#8c8a82;--pn:#fff;--bd:#d6d4cb;--r:#e5484d;--o:#f2994a;--y:#f5d04c;--g:#4cbf7a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161618;--tx:#eeeeea;--mu:#a2a29b;--zn:#2c2c31;--st:#6d6d75;--pn:#202024;--bd:#393940}}
+:root[data-theme="dark"]{--bg:#161618;--tx:#eeeeea;--mu:#a2a29b;--zn:#2c2c31;--st:#6d6d75;--pn:#202024;--bd:#393940}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header,main{max-width:1280px;margin:0 auto;padding:12px 16px}
+h1{font-size:1.5rem;margin:8px 0 2px;font-family:Georgia,"Times New Roman",serif}
+.sub{color:var(--mu);margin:0 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tab,.chip{border:1px solid var(--bd);background:var(--pn);color:var(--tx);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+.tab[aria-pressed=true]{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.tab small{opacity:.7;margin-left:4px}
+select{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--pn);color:var(--tx)}
+.leg{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0;color:var(--mu);font-size:.9rem}
+.dot{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--st)}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.plan{background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:8px}
+svg{width:100%;height:auto;display:block}
+.z{stroke:var(--st);stroke-width:2;cursor:pointer}
+.z:hover{stroke-width:5}
+.z:focus-visible,.z.sel{stroke:var(--tx);stroke-width:6;outline:none}
+.s0{fill:var(--zn)}.sr{fill:var(--r)}.so{fill:var(--o)}.sy{fill:var(--y)}.sg{fill:var(--g)}
+text{pointer-events:none;font-family:inherit;fill:var(--tx);text-anchor:middle}
+.c text{fill:#111}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;color:var(--mu);font-size:.9rem}
+.panel{background:var(--pn);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;position:sticky;top:8px}
+.panel h2{margin:0;font-size:1.2rem;font-family:Georgia,serif}
+.panel p{margin:4px 0}
+.mu{color:var(--mu);font-size:.92rem}
+article{border-top:1px solid var(--bd);margin-top:10px;padding-top:10px}
+.b{font-weight:600}
+.ph a{margin-right:10px;color:inherit}
+</style></head><body>
+<header>
+<h1>Okul engelsiz krokisi</h1>
+<p class="sub">Bir alana, derslige, merdivene ya da boş bir noktaya dokunun; o konumdaki bildirimler yanda açılır.</p>
+<p class="sub" id="src"></p>
+<div class="bar" id="tabs"></div>
+<div class="bar" style="margin-top:8px"><label for="flt">Engel grubu:</label><select id="flt"></select><button class="tab" id="rf" type="button">Yenile</button></div>
+<div class="leg" id="leg"></div>
+</header>
+<main><div class="grid">
+<section><div class="plan"><div id="svg"></div></div><div class="chips" id="chips"></div></section>
+<aside class="panel" id="panel" aria-live="polite"></aside>
+</div></main>
+<script>
+const N={M:"Merdiven",K:"Ortak Alan / Koridor",D:"Derslikler",Kn:"Kantin",Y:"Yemekhane",G:"Giriş / Nizamiye",Ms:"Mescid",YM:"Yangın Merdiveni",A:"Asansör / Platform Önü"};
+const T=["Rampa / Eğimli Geçiş","Asansör / Platform Lift","Geçici veya Kalıcı Engel","Hissedilebilir Sarı Kılavuz Yol","Sesli / Görsel Acil Durum Uyarısı","Erişilebilirlik Elemanı Yok","Kapı Genişliği / Eşik Engeli","İşaret Dili Destekli Danışma Noktası","Sessiz / Düşük Uyaranlı Alan","Yönlendirici Pano / Braille & QR"];
+const GR={F:"Fiziksel",G:"Görme",D:"Diğer",C:"Çoklu engellilik",O:"Otizm / Nöroçeşitlilik",I:"İşitsel"};
+const ST={r:"Arızalı / kullanılamaz",o:"İşgal edilmiş / engellenmiş",y:"Kısmen erişilebilir",g:"Aktif / erişilebilir"};
+const FL={S:"Okul bahçesi",B:"Bodrum kat",Z:"Zemin kat","1":"1. kat","2":"2. kat"};
+// [kat, konum, tür, grup, durum, not, fotoğraf kimlikleri]
+let R=[
+["S","M",0,"F","y","Eğim çok fazla olduğu için fiziksel gereksinimi olan birine sorun çıkarabilir","15sUCSyY7l4sQSoHULCAzK2UDFwEA-9C4 1J4Ek3h0T0elCopx2W5gNegK2bSmj22BS 11Bn5inZk9sF21M-JAuEersQxqxvtDObB"],
+["1","K",1,"F","r","Asansör kullanım dışı olması vesilesiyle fiziksel gereksinimli bir birey kullanamaz","1bS0Xne700EtsGoGoFei4pGjODucFo6zl 1Epg1bVqACS1dennZHHBIrN29eQfHKhhy"],
+["1","K",2,"G","o","Koridorun belirli bir alanını kapladığı için görme engelli bir bireye sıkıntı çıkartabilir","1KDIIMDHMkTp6La5l6t0OVyyIp8klcr06 1zlkxzwed82G86_kO9QzYi_2GJaPWTM3e 16tM0HpafUFkIZ55b35yEwMU2eWVqgY7V 13Thk3bMAJf2rdQ_UUf-f-kyqhyqnXOma 1GvEFzeVDTn4Obi1FHZeQdxTxKCHoXVVy 1iNwKskx0XUKuFxCBEFh9xGLtFOwY-Sbz 1W3iwvPmueKjFRVtQZqRdG7AT5VLrhvZc 1sh-s5pS8lZi-xkYZMnbGSX1YeJSPg_Yr 1yQpbVzlTsI6rUGBT37_p57-4sGdk048u 1ULVfcnyQflRTVgQsTKEU9dcCUkgMhyL3"],
+["1","M",3,"G","r","Hissedilebilir sarı yol yok","1_RnT4NbHxfxqYQcEzvzq6v-AkH-4sv2W"],
+["1","K",2,"D","r","Sarkan kablo","16JuZlQikq966aSjWvL5p7Z-Ah3m3gSNL"],
+["2","D",2,"C","y","Kabloların açıkta olması tehlikeli","1EcsvZB3TKCi3BOTzSBl_s4Oe_VtwxBpl"],
+["2","D",2,"G","r","Kabloların elektrik çarpma tehlikesi","1kV47Go3bq0eEVxEt03el81420tvmmOLx"],
+["Z","Kn",4,"O","y","Aşırı sesli ve kalabalık","1ikmY1bNu75b4ULRQc3AfPwzdtm9xj8EX"],
+["B","M",2,"C","y","Takılıp düşme ihtimali yüksek","1gKnszssnv93O5aFHdbCCYQKi2GO-Lx3r"],
+["Z","K",2,"C","r","Başımaza düşebilir","1eg6daLrVSPL-jxrzQaGJOjq_J2IKIBdx"],
+["Z","YM",2,"C","r","Acil durumlarda kulanılamaz","1hn8jxDkQ3HWcDpm45ODd7-xAV9sJ1C6l"],
+["Z","G",2,"G","o","Herhangi bir yönlendirici pano yok çarpabilirler.","1Tle1JtpCPy312mXRACENxIS5CopvS7u1"],
+["2","K",2,"G","y","Düşebilirler","1mu56nP9m03tm0FKMDSMWsl-M3ch_eLQz"],
+["Z","K",5,"G","o","Hiçbir yönlendirici yok sesli uyarı sistemi yok","1XAtBKfxtq94G7_GGDc-0WU5MDFYnZ_U4"],
+["Z","K",5,"F","o","Fiziksel engeliler için uygun bir alan yok.","1x3Kmkrefp9A69BwFJVAoOX7mzzPJeYTh"],
+["1","K",5,"G","o","Kolonlar fazla mesafesiz görme özel gereksinimi olan birey hasar alabilir","1tHkN7OvFFOB2MVmgxn5VGO-XWmewNAz0 1frDmo6F3O1s--QNH26UT3V0iyKPtUt7i 1_K0h8IvdLYYEUImRRFVXxANccxaav4WM 1LsLP1lwVe7O5_4KEODOVaOCvmdbjsTcW"],
+["1","K",6,"G","y","Çöp kovasının konumu merdivenden inen bir bireyin ayağına takılabilir","1w8_Y5Ppr6-bin_qxFq0JUIw5hDPwCCwA"],
+["2","D",2,"G","y","Kablo sarkması","15L5qHTBLio1z4G1gBcTaqC3SCJWWigSJ"],
+["Z","Ms",7,"G","y","Mescit alanı daha içte olması gerek görme engeliler çarpa bilir","1Ke6dYnSeYM0IdYRXHEZD-9NW1xagaPSu"],
+["1","M",0,"C","y","Merdiven eyimi çok dik deyil tutula bilecek korkuluk var oşumlu","1jlK4dCEQuYYiGTjPssUBtsrdxvFf9TH0"],
+["2","A",1,"G","r","Asansör kapalı çalışmıyor","13fSu5Jq-37NQr4nRcnrgT2p8k62qLILG"],
+["2","D",2,"F","o","Çıkıntı nedeniyle öğretmen masasına takılabilinir","1MtgbcjGE_VPYmyhsn3xgZS_WpE2gtnjk"],
+["B","Y",5,"G","o","Sivri uçlu alan görme özel gereksinimi olan bir bireyi yaralayabilir","1C5HRynXpBzbyaTAnrx24JO8QaRelrAIH 1mMrJROhwxHndkT-LAs8aKStl-VHmP0KV"],
+["B","Y",6,"G","o","Kenarda olan çöp kovası görme özel gereksinimli bireyi yaralayabilir","1asEqk9tYi4lppQFRrJkvYtGEO1ypbkU8"],
+["2","M",3,"F","y","Merdiven bantları.(olumlu)","1Ga-HF9ZLx0eP-Y12O83xf-eS_sdFWO8P"],
+["2","K",2,"O","o","Pano düşe bilir","1qjWb_7Aj-g-JK2rh6eRmDS2k6Vw4AwQ3"],
+["Z","K",2,"C","o","Möbetçi dolabı","1AED7eqm4q4eEH7KrSxgB-6WbIrBKSMda"],
+["2","K",2,"F","o","Öğretmen masası rampa çıkışı","1S5WnytZx042bAerNBcvR8_VBWN9Na6UT"],
+["2","K",2,"G","y","Kablo sarkması","10_u2vBsjYLaEb2djODBEB_TUxVp_-WBF"],
+["Z","Ms",2,"G","o","Görme engelli bireyler çarpa bilir","1M7MBXxDmfFBfOYWKUjBgiLZN66mighuy"],
+["2","K",2,"D","r","Düşebilir.","1bl56kq7swdTVf8Y1Gk6T41xFKUDAyKSq"],
+["2","K",5,"G","o","Görme engelli bireylerin çarpma riski var.","10CfZYHTFWsleEGT5gJ2j0D4YeFTcGHLD"],
+["2","M",8,"O","y","Otizimli bireyler için olumsuz","11AX-KM68I12ZR62sFS66s1IVLxIni3cT"],
+["Z","K",9,"C","g","Acil yangın durumunda ne yapılacağını yönlendirir.","1sUSakQt6QZTHq4liO0UbE9Bn4y2MJePm"],
+["2","K",2,"G","y","Görme engelli bireylerin çarpma sonucu üstlerine düşme riski var","1m_vkd0EJcYhf4EEKnfAbFHoSOlc6zXtk"],
+["2","K",0,"G","r","Görme engelli bireylerin takılıp düşmesi olabilir.","1Xm6Ky_jQoqQe832P2IO0o7f6xONfx8g_"],
+["2","K",6,"G","o","Mesafe yok.","1E0Y_o5kT20dzc9mZwKeWrHqymPJuUNTo"],
+["1","K",4,"I","g","Görme engelliler için yönlendirme.","10p-7faP64nhAfhLwUvHACaOgFBTHIdPr"],
+["1","K",5,"C","y","Düşebilir.","1ygCCMIMX4feaYVrwm_T8aVcA5aatbEc7"],
+["2","D",5,"G","r","Kablo kopabilir.","1pyVgg-Q4ABF_hv0m4FZ2yxdN5SNbfw8E"],
+["1","K",2,"G","o","Görme engelli bir bireyin takılıp düşmesi.","1EnVbevJpKWMBM4tfTvjyWW43z9oskk-y"]];
+const C=(x,y,n)=>["c",x,y,"Derslik "+n,"D"];
+const F={
+S:{w:1266,h:1041,z:[["r",33,88,1200,60,"Okul binası (zemin kat girişi)",""],["r",353,176,280,120,"Giriş merdiveni","M"],["r",673,176,180,120,"Rampa",""],["r",49,308,156,80,"Merdiven","M"],["r",49,408,156,80,"Rampa",""],["r",105,588,128,100,"Çardak",""],["r",73,776,128,92,"Çardak",""],["r",73,908,128,88,"Çardak",""],["r",373,508,240,280,"Voleybol sahası",""],["r",713,608,480,360,"Futbol sahası",""],["r",773,418,100,28,"Kale",""],["r",1033,418,100,28,"Kale",""],["r",1161,406,16,52,"Basket potası",""]]},
+B:{w:1226,h:655,z:[["r",33,121,280,200,"Spor salonu",""],["r",593,121,220,200,"Müzik odası",""],["r",953,201,240,360,"Yemekhane","Y"],["r",33,321,920,80,"Koridor","K"],["r",293,401,200,220,"Merdiven","M"],["r",813,401,120,150,"Yangın|Merdiveni","YM"]]},
+Z:{w:1179,h:750,z:[["r",49,190,80,450,"Koridor","K",1],["r",1049,337,80,380,"Koridor","K",1],["r",130,337,920,80,"Koridor","K"],["r",229,177,160,160,"Merdiven","M"],["r",909,177,140,160,"Merdiven","M"],["r",409,177,220,115,"Kantin","Kn"],["r",409,293,220,44,"Atatürk köşesi",""],["r",453,417,40,120,"Giriş kapısı","G"],["r",343,537,260,120,"Giriş merdiveni","M"],["r",623,537,140,120,"Rampa",""],["r",850,600,140,110,"Mescid","Ms"],["r",1050,190,120,130,"Yangın|Merdiveni","YM"],["r",146,60,80,110,"Yangın|Merdiveni","YM"],C(89,157,1),C(89,377,2),C(89,577,3),C(269,577,4),C(829,487,5),C(953,487,6),C(1089,389,7),C(1089,521,8),C(1089,657,9)]},
+"1":{w:1343,h:655,z:[["r",273,155,80,465,"Koridor","K",1],["r",1083,235,80,295,"Koridor","K",1],["r",353,349,730,80,"Koridor","K"],["r",33,329,240,120,"Toplantı|Salonu",""],["r",673,189,200,160,"Öğretmenler|Odası",""],["r",373,429,156,140,"Merdiven","M"],["r",545,429,220,140,"Kimya|Laboratuvarı",""],["r",909,429,156,140,"Merdiven","M"],C(313,243,10),C(313,121,11),C(513,121,12),C(833,499,13),C(1123,251,14),C(1253,265,15),C(1253,387,16),C(1253,509,17),["r",1190,575,120,70,"Yangın|Merdiveni","YM"],["r",33,460,120,90,"Yangın|Merdiveni","YM"]]},
+"2":{w:1258,h:715,z:[["r",49,81,80,600,"Koridor","K",1],["r",979,121,80,235,"Koridor","K",1],["r",130,355,1020,80,"Koridor","K"],["r",209,195,180,160,"Kütüphane",""],["r",189,435,160,140,"Merdiven","M"],["r",869,435,160,140,"Merdiven","M"],C(89,161,29),C(89,281,28),C(89,501,27),C(89,621,26),C(1019,181,22),C(1169,181,23),C(1169,397,24),C(1169,533,25),C(429,511,18),C(549,511,19),C(669,511,20),C(789,511,21),["r",150,600,120,90,"Yangın|Merdiveni","YM"],["r",1110,600,120,90,"Yangın|Merdiveni","YM"]]}};
+for(const k in F)F[k].z=F[k].z.map(z=>z[0]=="c"?{c:1,x:z[1]-56,y:z[2]-56,w:112,h:112,l:z[3],k:z[4]}:{x:z[1],y:z[2],w:z[3],h:z[4],l:z[5],k:z[6],n:z[7]});
+let cur="Z",sel=null,flt="";
+const $=id=>document.getElementById(id);
+const rows=(f,k)=>R.filter(r=>r[0]==f&&r[1]==k&&(!flt||r[3]==flt));
+const worst=rs=>["r","o","y","g"].find(s=>rs.some(r=>r[4]==s))||"0";
+function tabs(){
+ $("tabs").innerHTML=Object.keys(FL).map(k=>`<button class="tab" data-f="${k}" aria-pressed="${k==cur}">${FL[k]}<small>${R.filter(r=>r[0]==k).length}</small></button>`).join("");
+ $("flt").innerHTML='<option value="">Tümü</option>'+Object.keys(GR).map(g=>`<option value="${esc(g)}"${g==flt?" selected":""}>${esc(GR[g])}</option>`).join("");
+ $("leg").innerHTML=Object.keys(ST).map(s=>`<span><i class="dot" style="background:var(--${s})"></i>${ST[s]}</span>`).join("")+'<span><i class="dot" style="background:var(--zn)"></i>Kayıt yok</span>';
+}
+function draw(){
+ const f=F[cur];
+ let s=`<svg viewBox="0 0 ${f.w} ${f.h}" role="group" aria-label="${FL[cur]} krokisi"><rect data-i="bg" width="${f.w}" height="${f.h}" fill="transparent" style="cursor:pointer"/>`;
+ f.z.forEach((z,i)=>{
+  const w=worst(rows(cur,z.k)),cx=z.x+z.w/2,cy=z.y+z.h/2,fs=Math.min(z.h<40?15:z.c?20:22,z.w*1.5/Math.max(...(z.l||"").split("|").map(x=>x.length),1));
+  const sh=z.c?`<circle class="z s${w}" cx="${cx}" cy="${cy}" r="56"`:`<rect class="z s${w}" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="10"`;
+  s+=`<g class="${w=="0"?"":"c"}">${sh} data-i="${i}" tabindex="0" role="button" aria-label="${(z.l||N[z.k]).replace("|"," ")}"${sel===i?' class="z s'+w+' sel"':""}/>`;
+  if(z.c){const p=z.l.split(" ");s+=`<text x="${cx}" y="${cy-6}" font-size="17">${p[0]}</text><text x="${cx}" y="${cy+24}" font-size="28" font-weight="700">${p[1]}</text>`}
+  else if(z.l&&z.w>=60&&!z.n){const ls=z.l.split("|");ls.forEach((t,j)=>s+=`<text x="${cx}" y="${cy+fs*.35+(j-(ls.length-1)/2)*fs*1.2}" font-size="${fs}" font-weight="600">${t}</text>`)}
+  s+="</g>";
+ });
+ $("svg").innerHTML=s+"</svg>";
+ const used=new Set(f.z.map(z=>z.k)),extra=[...new Set(R.filter(r=>r[0]==cur&&!used.has(r[1])).map(r=>r[1]))];
+ $("chips").innerHTML=extra.length?"Planda çizilmemiş konumlar: "+extra.map(k=>`<button class="chip" data-c="${esc(k)}">${esc(N[k])} (${rows(cur,k).length})</button>`).join(""):"";
+ $("svg").querySelectorAll(".z").forEach(e=>{if(sel===+e.dataset.i)e.classList.add("sel")});
+}
+function show(){
+ const f=F[cur];let t,sub="",rs=null;
+ if(sel===null){
+  const a=R.filter(r=>r[0]==cur&&(!flt||r[3]==flt));
+  $("panel").innerHTML=`<h2>${FL[cur]}</h2><p class="mu">${a.length} bildirim. Ayrıntı için plandan bir alan seçin; renksiz alanlara ve boşluklara da dokunabilirsiniz.</p>`;return}
+ if(sel==="bg"){t="Boş alan";sub="Planda çizilmemiş ya da kullanım dışı bir nokta. Burada kayıtlı bildirim yok."}
+ else if(typeof sel=="string"){t=N[sel.slice(2)];rs=rows(cur,sel.slice(2))}
+ else{const z=f.z[sel];t=(z.l||N[z.k]).replace("|"," ");rs=z.k?rows(cur,z.k):[];
+  if(z.k&&N[z.k]!==t)sub="Kategori: "+N[z.k]+(z.k=="D"?" (formda derslik numarası belirtilmediği için tüm derslikler için gösterilir)":"");
+  if(!z.k)sub="Bu alan için form kategorisi yok."}
+ let h=`<h2>${esc(t)}</h2><p class="mu">${FL[cur]}${sub?" · "+sub:""}</p>`;
+ if(sel==="bg")h+=`<p>${sub}</p>`;
+ else if(!rs.length)h+=`<p>Bu alan için ${flt?"seçili grupta ":""}henüz bildirim yok.</p>`;
+ else h+=rs.map(r=>`<article><p class="b"><i class="dot" style="background:var(--${r[4]})"></i>${ST[r[4]]}</p><p>${esc(T[r[2]])} · ${esc(GR[r[3]])}</p><p>${esc(r[5])}</p><p class="ph">${r[6].split(" ").filter(Boolean).map((id,i)=>`<a href="https://drive.google.com/open?id=${id}" target="_blank" rel="noopener">Fotoğraf ${i+1}</a>`).join("")}</p></article>`).join("");
+ $("panel").innerHTML=h;
+}
+function all(){tabs();draw();show()}
+document.addEventListener("click",e=>{
+ const t=e.target.closest("[data-f],[data-i],[data-c]");if(!t)return;
+ if(t.dataset.f){cur=t.dataset.f;sel=null}
+ else if(t.dataset.i){sel=t.dataset.i=="bg"?"bg":+t.dataset.i}
+ else sel="c:"+t.dataset.c;
+ all();
+});
+document.addEventListener("keydown",e=>{if(e.key=="Enter"&&e.target.dataset&&e.target.dataset.i&&e.target.dataset.i!="bg")e.target.dispatchEvent(new MouseEvent("click",{bubbles:true}))});
+$("flt").addEventListener("change",e=>{flt=e.target.value;all()});
+const SHEET_CSV=""; // Google E-Tablolar "Web'de yayınla" CSV bağlantınızı tırnakların arasına yapıştırın
+function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+const FM={"Okul Bahçesi (Dış Alan)":"S","Bodrum":"B","Zemin Kat":"Z","1. Kat":"1","2. Kat":"2"};
+const LM={};Object.keys(N).forEach(k=>LM[N[k]]=k);
+const GM={"FİZİKSEL":"F","GÖRME":"G","DİĞER":"D","ÇOKLU ENGELLİLİK":"C","OTİZM / NÖROÇEŞİTLİLİK":"O","İŞİTSEL":"I"};
+const SNAP=R;
+function csv(t){const o=[];let r=[],c="",q=false;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=h}else if(h=='"')q=true;else if(h==","){r.push(c);c=""}else if(h=="\n"||h=="\r"){if(h=="\r"&&t[i+1]=="\n")i++;r.push(c);o.push(r);r=[];c=""}else c+=h}
+ if(c||r.length){r.push(c);o.push(r)}return o}
+function conv(t){T.length=0;let skip=0;const out=[];
+ for(const r of csv(t).slice(1)){if(!r[1])continue;const f=FM[r[1].trim()];if(!f){skip++;continue}
+  const lk=(r[2]||"").trim();let k=LM[lk];if(!k){k=lk;N[k]=lk;LM[lk]=k}
+  const ty=(r[3]||"").replace(/\s*\(.*$/,"").trim();let ti=T.indexOf(ty);if(ti<0)ti=T.push(ty)-1;
+  const gn=(r[4]||"").trim().toLocaleUpperCase("tr");let g=GM[gn];if(!g){g=gn;GR[g]=gn}
+  const st=r[5]||"";const s=st.includes("🔴")?"r":st.includes("⚠")?"o":st.includes("🟡")?"y":st.includes("🟢")?"g":"y";
+  const ph=((r[7]||"").match(/id=([\w-]+)/g)||[]).map(x=>x.slice(3)).join(" ");
+  out.push([f,k,ti,g,s,(r[6]||"").trim(),ph])}
+ return {out,skip}}
+async function load(){
+ if(!SHEET_CSV){$("src").textContent="Örnek veri gösteriliyor (Google E-Tablolar bağlantısı henüz eklenmedi).";return}
+ try{const u=SHEET_CSV+(SHEET_CSV.includes("?")?"&":"?")+"t="+Date.now();
+  const txt=await (await fetch(u)).text();try{localStorage.setItem("krokiCsv",txt)}catch(e){}
+  const x=conv(txt);R=x.out;$("src").textContent="Güncel: "+new Date().toLocaleString("tr-TR")+" · "+R.length+" bildirim"+(x.skip?" · "+x.skip+" satırın kat adı tanınmadı":"")}
+ catch(e){let c=null;try{c=localStorage.getItem("krokiCsv")}catch(_){}
+  if(c){R=conv(c).out;$("src").textContent="Çevrimdışı: son kaydedilen veri gösteriliyor."}else $("src").textContent="Veri alınamadı, örnek veri gösteriliyor."}
+ all()}
+$("rf").addEventListener("click",load);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+all();load();
+</script></body></html>
